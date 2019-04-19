@@ -6,16 +6,25 @@
     <title>Fitch Autocomplete</title>
     <script src="g.js"></script>
     <script src="nearley.js"></script>
+    <script src="content.js"></script>
     <style>
+        body {
+            margin: 0;
+        }
+
         body, button, .button {
             font-family: 'Roboto';
+        }
 
+        header h1 {
+            padding-left: 1em;
         }
 
         #in {
             padding: 0.5em;
-            border: 2px solid;
+            border: 1px solid;
             font-family: monospace;
+            font-size: 12pt;
         }
 
         #out {
@@ -23,6 +32,10 @@
             border: 1px solid black;
             width: 100%;
             font-family: monospace;
+        }
+
+        #out_nums {
+
         }
 
         #out_nodes {
@@ -45,10 +58,6 @@
             font-size: 12pt;
         }
 
-        #in {
-            font-size: 12pt;
-        }
-
         @media screen and (min-width: 800px) {
             #in {
                 width: 400px;
@@ -66,6 +75,12 @@
 
         }
 
+        navigation {
+            margin: 0;
+            background: #7a6490;
+            display: flex;
+        }
+
         navigation, section {
             padding: 10px;
         }
@@ -75,26 +90,54 @@
         }
 
         .button {
-            display: inline-block;
-            background: #895ed6;
-            border: 1px solid #341aa7;
-            color: white;
+            font-size: 11pt;
+
+            display: inline-flex;
+            align-items: center;
+
+            box-sizing: border-box;
+
+            background: #fafafa;
+            border: 1px solid #451d84;
+            /* color: white; */
+            color: #111;
             border-radius: 3px;
             text-decoration: none;
-            padding: 4px;
+            padding: 6px;
             cursor: default;
-            box-shadow: 0 0 3px #a6a7ff;
+            box-shadow: 0 0 1px black;
+        }
+
+        .button option {
+            background: white;
+        }
+
+        .button + .button {
+            margin-left: 0.5em;
         }
 
         .button:hover {
-            background: #aa84ef;
-            box-shadow: 0 0 2px #0017ff;
+            background: #e6e2ec;
+        }
+
+        #status {
+            display: inline-block;
+            margin-left: 0.3em;
+
+            width: 1em;
+            height: 1em;
+
+            border: 1px solid #666;
+            display: inline-block;
+            background-color: rgb(87, 158, 77);
         }
 
         .modal {
             position: absolute;
             box-sizing: border-box;
             overflow-y: auto;
+
+            z-index: 1;
 
             width: 70%;
             margin-left: 15%;
@@ -104,7 +147,11 @@
             background: rgba(240, 234, 251, 0.95);
             border: 1px solid #341aa7;
             border-radius: 4px;
-            box-shadow: 0px 0px 5px #000dffa6;
+            box-shadow: 0px 0px 5px black;
+
+            text-align: justify;
+
+            display: none;
         }
 
         .modal h2 {
@@ -114,28 +161,31 @@
         }
 
         .modalcontent {
-            padding: 3em;
-            padding-left: 4em;
+            padding: 2em;
+            padding-left: 3em;
             margin: 0;
         }
 
         .modalcontent td {
+            width: 3em;
             border: 1px solid gray;
             text-align: center;
         }
+
 
         .modalcontent td:first-child {
             text-align: left;
         }
 
+        .modalcontent td:nth-child(2) {
+            font-weight: bold;
+        }
+
         .modalblock {
-            float: left;
             /*width: 48%;*/
         }
 
-        .modal {
-            display: none;
-        }
+
 
         .branch {
             border-left: 1px solid black;
@@ -146,6 +196,7 @@
 </head>
 <body>
 
+<div class="overlay" style="position: absolute; width: 100vw; height: 97vh; margin: 0; padding: 0; display: none;" onclick="help_close()"></div>
 <div class="modal">
     <h2>Conventions</h2>
     <div class="modalcontent">
@@ -159,13 +210,13 @@
             </p>
             <ul>
                 <li>
-                    automatically insert "the next best" formula if you're stuck;
+                    automatically find proofs or insert helpful formulas;
                 </li>
                 <li>
                     verify whether deductions are correct [but can be used for this purpose in most cases];
                 </li>
                 <li>
-                    enables you to input or verify your own justifications [but it does list all candidates, if you're using the same conventions].
+                    enable you to input or verify your own justifications [but it does list all candidates for justifications, if you're using the same conventions].
                 </li>
             </ul>
             <p>
@@ -173,14 +224,14 @@
                 Everything else mentioned is mostly doable, but there are other tools for those purposes.
             </p>
         </div>
-        <div class="modalblock">
+        <!-- <div class="modalblock">
             <h3>Proofs vs. derivations</h3>
             <p>
                 Deductions with at least one initial assumption are "derivations". Everything else is a "proof".
-                Differentianing these is needed here, because we process deductions line-by-line.
+                Differentianing these is needed here, because this tool is intended to be used  process deductions line-by-line.
                 <b>Proofs should be started with a single tilde symbol (~) in the first line.</b>
             </p>
-        </div>
+        </div> -->
         <div class="modalblock">
             <h3>Syntax</h3>
             <p>
@@ -188,40 +239,41 @@
             </p>
             <table>
                 <tr>
-                    <td></td><td>Symbol</td><td>In text</td>
+                    <td></td><td>Symbol</td><td colspan="6">In text</td>
                 </tr>
                 <tr>
-                    <td>Logical NOT</td><td>¬</td><td>~</td>
+                    <td>Logical NOT</td><td>¬</td><td>~</td><td>~</td><td>-</td><td></td><td></td><td></td>
                 </tr>
                 <tr>
-                    <td>Logical AND</td><td>∧</td><td>/\</td>
+                    <td>Logical AND</td><td>∧</td><td>/\</td><td>&</td><td>&&</td><td>*</td><td>.</td><td></td>
                 </tr>
                 <tr>
-                    <td>Logical OR</td><td>∨</td><td>\/</td>
+                    <td>Logical OR</td><td>∨</td><td>\/</td><td>\/</td><td>+</td><td>|</td><td>||</td><td>,</td>
                 </tr>
                 <tr>
-                    <td>Conditional</td><td>→</td><td>-></td>
+                    <td>Conditional</td><td>→</td><td>-></td><td>&gt;</td><td>=&gt;</td><td></td><td></td><td></td>
                 </tr>
                 <tr>
-                    <td>Biconditional</td><td>↔</td><td><-></td>
+                    <td>Biconditional</td><td>↔</td><td><-></td><td>=</td><td>&lt;&gt;</td><td>&lt;=&gt;</td><td></td><td></td>
                 </tr>
                 <tr>
-                    <td>Falsum</td><td>⊥</td><td>#</td>
+                    <td>Falsum</td><td>⊥</td><td>#</td><td>_|_</td><td></td><td></td><td></td><td></td>
                 </tr>
                 <tr>
-                    <td>Universal quantifier</td><td>∀</td><td>A</td>
+                    <td>Universal quantifier</td><td>∀</td><td>A</td><td>@</td><td></td><td></td><td></td><td></td>
                 </tr>
                 <tr>
-                    <td>Existential quantifier</td><td>∃</td><td>E</td>
+                    <td>Existential quantifier</td><td>∃</td><td>E</td><td></td><td></td><td></td><td></td><td></td>
                 </tr>
                 <tr>
-                    <td>Proposition/Relation</td><td>B&mdash;D, F&mdash;Z</td><td>B&mdash;D, F&mdash;Z</td>
+                    <td>Relation</td><td>A&mdash;Z</td><td>A&mdash;Z</td><td></td><td></td><td></td><td></td><td></td>
                 </tr>
                 <tr>
-                    <td>Variable/Constant</td><td>a&mdash;z</td><td>a&mdash;z</td>
+                    <td title="Important: see conventions below">Variable/Constant</td><td>a&mdash;z</td><td>a&mdash;z</td><td></td><td></td><td></td><td></td><td></td>
                 </tr>
             </table>
             <p>
+
                 Deduction is a list of lines, where each line is a block of <b>|</b>'s followed by a formula.
                 If A is an asummption, use L instead of the rightmost |.
                 For example: <br/>
@@ -231,7 +283,85 @@
                 </span>
             </p>
         </div>
+        <div class="modalblock">
+            <h3>Conventions</h3>
+            <p>
+                Note that relational symbols (including propositions) are limited in length to one character.
+                Letters 'A' and 'E' can be used for propositions (0-ary relations), but it might be confusing.
+                However, this tool will correctly detemine whether Ax
+                    is universal quantification or an atomic formula, assuming there are no typos in the starting formula.
+            </p>
+            <p>
+                You should put brackets everywhere, except when it doesn't matter.
+            </p>
+            <p>
 
+                Conventions for quantifiers:
+            </p>
+            <ul>
+                <li>The main restriction is that you <b>do not use the same letters for variables and (pseudo)constants.</b>
+                    For example, a valid proof of ∀x P(x) from the assumption ∀x ¬¬P(x) would go as follows:
+                    ∀x ¬¬P(x); ¬¬P(c); P(c); ∀x P(x).
+                    This restriction is not enforced (not abiding it will not cause a syntax error).
+                    For example, if you have Pt ∧ Px, you can deduce ∃x (Px ∧ Px).
+                    However, if you have Px ∧ Pt, since you are trying to introduce x, and the first occurence of x in
+                        the original formula Px ∧ Pt is Px, the second occurence of Px would cause an error (it differs from Pt).
+                    A good way to solve this would be to explicitly ask the user what term is being replaced in order to find a justification,
+                        but this is exactly what we're trying to avoid.
+                </li>
+                <li>Introducing ∀, specifically ∀x F(x), can be done given a formula F such that F is exactly like F(x),
+                    except that all free occurences of some letter t (which may or may not actually appear in F) within F
+                    are replaced with x.
+                    There are the usual restrictions:
+                    <ul>
+                        <li>t should not be mentioned in any assumption, unless it belongs to an already completed subproof</li>
+                        <li>F should not contain a quantifier over t whose scope contains x an occurence of x (e.g. EtQx)</li>
+                    </ul>
+                </li>
+                <li>
+                    Introducing ∃, specifically ∃x F(x), can be done given a formula F such that F is exactly like F(x),
+                    except that all zero or more occurences of some letter t (which may or may not actually appear in F) within F
+                    are replaced with x.
+                    There are the usual restrictions:
+                    <ul>
+                        <li>F should not contain a quantifier over t whose scope contains an occurence of x (e.g. EtQx)</li>
+                    </ul>
+                </li>
+                <li>Eliminating ∀, specifically ∀x F(x), is done by inserting any formula F such that
+                    all free occurences of x (which may or may not actually appear in F(x)) within F
+                    are replaced with t.
+                    There are the usual restrictions:
+                    <ul>
+                        <li>F should not contain a quantifier over t whose scope contains x an occurence of x (e.g. EtQx)</li>
+                    </ul>
+                </li>
+                <li>Eliminating ∃, specifically ∃x F(x), is done by inserting a subproof beginning with a formula F such that
+                    all free occurences of some letter t (which may or may not actually appear in F) within F
+                    are replaced with x.
+                    The subproof should and with a formula not containing an occurence of t.
+                    There are the usual restrictions:
+                    <ul>
+                        <li>t should not be mentioned in any preceding line, unless it belongs to an already completed subproof</li>
+                        <li>F should not contain a quantifier over t whose scope contains x an occurence of x (e.g. EtQx)</li>
+                    </ul>
+                </li>
+            </ul>
+            <p>
+                Rules for logical connectives are mostly standard.
+                There are some additional conventions regarding justifications that probably won't matter such as:
+            </p>
+            <ul>
+                <li>when introducing ∧ from lines numbered a, b; the order will be a, b if a < b, otherwise b, a</li>
+                <li>when eliminating → from lines a: F → G, b: F; the order will be a, b regardless of whether a < b</li>
+                <li>when introducting ⊥ from a: X, b: ¬X; the order will be a, b</li>
+                <li>similarly for other connectives</li>
+            </ul>
+            </p>
+        </div>
+        <div class="modalblock">
+            <h3>Author</h3>
+            <div>Luka Mikec, nameDOTsurnameATgmailDOTcom, and insert 1 before AT</div>
+        </div>
     </div>
 </div>
 
@@ -241,55 +371,42 @@
     </h1>
 </header>
 <navigation>
+    <div class="button" title="Green: valid syntax & justifications found for all lines. Blue: valid syntax & missing justifications. Yellow: otherwise. ">
+        Status: <div id="status" style=""></div>
+    </div>
+
+    <div style="    flex-grow: 1 !important;">
+
+    </div>
+
+    <select class="button" id="examples" oninput="example_click()" >
+        <option value="contrapos" selected>Example: Contraposition</option>
+        <option value="demorgan1">Example: De Morgan 1</option>
+        <option value="demorgan2">Example: De Morgan 2</option>
+        <option value="drinker">Example: Drinker</option>
+    </select>
+
     <a class="button" onclick="help_click()" >
-        help
+        Help
     </a>
     <a class="button" href="https://github.com/luka-mikec/fitch-justify">
-        git repository
+        Git repository
     </a>
+
+    <select class="button" id="lang" oninput="lang_click()" >
+        <option value="en" selected>English</option>
+        <option value="hr">Croatian</option>
+    </select>
 </navigation>
 <section>
     <div style="" id="inout">
-            <textarea id="in" rows="40" style="" oninput="try_compile()">
-~
-|L ¬((AxPx) \/ ¬AxPx)
-||L AxPx
-||| AxPx \/ ¬AxPx
-||| #
-|| ¬AxPx
-|| AxPx \/ ¬AxPx
-|| #
-| ¬¬((AxPx) \/ ¬AxPx)
-| ((AxPx) \/ ¬AxPx)
-|L AxPx
-||L Pa
-||| AxPx
-|| Pa -> AxPx
-|| Ey(Py -> AxPx)
-|L ¬AxPx
-||L ¬Ex¬Px
-|||L ¬Pa
-|||| Ex¬Px
-|||| #
-||| ¬¬Pa
-||| Pa
-||| AxPx
-||| #
-|| ¬¬Ex¬Px
-|| Ex¬Px
-||L ¬Pb
-|||L Pb
-|||| #
-|||| AxPx
-||| Pb -> AxPx
-||| Ey(Py -> AxPx)
-|| Ey(Py -> AxPx)
-| Ey(Py -> AxPx)
+            <textarea id="in" rows="35" style="" oninput="try_compile()">
             </textarea>
         <div id="out">
 
 
             <div style="display: flex;" >
+                <div id="out_nums" style=""></div>
                 <div id="out_nodes" style=""></div>
                 <div id="out_just" style=""></div>
             </div>
@@ -303,616 +420,107 @@
     function help_click()
     {
         document.querySelector('.modal').style.display = 'block';
+        document.querySelector('.overlay').style.display = 'block';
     }
-    document.body.addEventListener('click', () => { document.querySelector('.modal').style.display = 'none'; } , true);
-
-
-
-
-    const land = '/\\', lor = '\\/', lcond = '->', liff = '<->', lnot = '¬', lfals = '#', lreit='re',
-        lintro = 'u', lelim = 'i', lall = 'A', lexists = 'E';
-
-    const in_div = document.querySelector("#in");
-    const out_div = document.querySelector("#out");
-    const out_nodes_div = document.querySelector("#out_nodes");
-    const out_just_div = document.querySelector("#out_just");
-    const out_lat_div = document.querySelector("#out_lat");
-    const out_dbg_div = document.querySelector("#out_dbg");
-
-    let latex = {};
-    latex[land] = '\\wedge ';
-    latex[lor] = '\\vee ';
-    latex[lcond] = '\\to ';
-    latex[liff] = '\\leftrightarrow ';
-    latex[lall] = '\\forall ';
-    latex[lexists] = '\\exists ';
-    latex[lnot] = '\\neg ';
-    latex[lfals] = '\\bot ';
-    latex[lreit] = '\\text{op.}';
-
-    let html = {};
-    html[land] = '∧';
-    html[lor] = '∨';
-    html[lcond] = '→';
-    html[liff] = '↔';
-    html[lall] = '∀';
-    html[lexists] = '∃';
-    html[lnot] = '¬';
-    html[lfals] = '⊥';
-    html[lreit] = 'op.';
-
-
-
-
-
-    class just {
-        constructor(op, ie, a, b, c, d, e) {
-            Object.assign(this, {op, ie, a, b, c, d, e});
-
-            let x = op + (ie ? ie : '');
-            let x_html = html[op] + (ie ? ie : '');
-            let x_latex = '$' + latex[op] + '$' + (ie ? ie : '');
-
-            if (x == 'asm') {
-                this.text = 'pretp.';
-                this.latex = 'pretp.';
-            }
-            if ([land + lelim,   lor + lintro,   lnot + lelim,   lfals + lelim,   lreit,   lall + lelim,   lexists + lintro,  lall + lintro].includes(x)) {
-                this.text = x_html + ", " + a;
-                this.latex = x_latex + ", " + a;
-            }
-            if ([land + lintro,  lcond + lelim,  liff + lelim,   lfals + lintro  ].includes(x))
-            {
-                this.text = x_html + ", " + a + ", " + b;
-                this.latex = x_latex + ", " + a + ", " + b;
-            }
-            if ([lcond + lintro,  lnot + lintro].includes(x))
-            {
-                this.text = x_html + ", " + a + "--" + b;
-                this.latex = x_latex + ", " + a + "--" + b;
-            }
-            if (x == lor + lelim)
-            {
-                this.text = x_html + ", " + a + ", " + b + "--" + c + ", " + d + "--" + e;
-                this.latex = x_latex + ", " + a + ", " + b + "--" + c + ", " + d + "--" + e;
-            }
-            if (x == liff + lintro)
-            {
-                this.text = x_html + ", " + a + "--" + b + ", " + c + "--" + d;
-                this.latex = x_latex + ", " + a + "--" + b + ", " + c + "--" + d;
-            }
-            if (x == lexists + lelim)
-            {
-                this.text = x_html + ", " + a + ", " + b + "--" + c;
-                this.latex = x_latex + ", " + a + ", " + b + "--" + c;
-            }
-        }
-    }
-
-    function* prevs(start) {
-        function *traverser(branch, start)
-        {
-            for (let a of branch.bs)
-            {
-                if (a === start)
-                    break;
-
-                if (a.form)
-                    yield a;
-            }
-            if (branch.prev)
-                yield * traverser(branch.prev, start);
-        }
-
-        yield * traverser(start.node, start);
-    }
-
-    function subst_inst_of(inst, schema, transl)
+    function help_close()
     {
-        if (inst.op !== schema.op)
-            return false;
-
-        if (inst.rel)
-        {
-            if (inst.rel != schema.rel || inst.vs.length != schema.vs.length)
-                return false;
-            for (let [i, obj] of inst.vs.entries())
-            {
-                if (transl.ignore_transl)
-                {
-                    if (obj != schema.vs[i])
-                        return false;
-                }
-                else
-                {
-                    if (schema.vs[i] == transl.v)
-                    {
-                        if (transl.c == null)
-                        {
-                            transl.c = obj;
-                        }
-                        else if (transl.c != obj && (transl.total  ||  transl.c != schema.vs[i]))
-                        {
-                            return false;
-                        }
-                    }
-                    else if (schema.vs[i] != obj)
-                        return false;
-                }
-            }
-            return true;
-        }
-
-        switch (inst.op) {
-            case lfals:
-                return true;
-            case lnot:
-                return subst_inst_of(inst.e, schema.e, transl);
-            case land: case lor: case lcond: case liff:
-                return subst_inst_of(inst.e1, schema.e1, transl) && subst_inst_of(inst.e2, schema.e2, transl);
-            case lall: case lexists:
-                if (inst.v !== schema.v)
-                    return false;
-
-                if (transl.ignore_transl || inst.v === transl.v) {
-                    let old_ignore_transl = transl.ignore_transl;
-                    transl.ignore_transl = true;
-                    let istrue = subst_inst_of(inst.e, schema.e, transl);
-                    transl.ignore_transl = old_ignore_transl;
-                    return istrue;
-                }
-
-                return subst_inst_of(inst.e, schema.e, transl);
-        }
+        document.querySelector('.modal').style.display = 'none';
+        document.querySelector('.overlay').style.display = 'none';
     }
-
-
-    function has_constant(form, c)
+    function lang_click()
     {
-        if (form.rel)
-        {
-            return form.vs.includes(c);
-        }
+        window.clang = window[document.querySelector('#lang').value];
+        try_compile();
+    }
+    //document.body.addEventListener('click', () => { document.querySelector('.modal').style.display = 'none'; } , true);
 
-        switch (form.op) {
-            case lfals:
-                return false;
-            case lnot, lall, lexists:
-                return has_constant(form.e, c);
-            case land: case lor: case lcond: case liff:
-                return has_constant(form.e1, c) || has_constant(form.e2, c);
-        }
+
+    function wip_state()
+    {
+        status_div.style.backgroundColor = 'rgb(55,99,200)';
     }
 
-
-
-
-    class line {
-        constructor(str, state) {
-            try {
-                if (str.trim() == '~')
-                {
-                    state.starting_asms = false;
-                    return;
-                }
-
-
-                const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar));
-                parser.feed(str.trim());
-                Object.assign(this, parser.results[0]);
-
-                if (state.starting_asms) {
-                    this.is_start_asm = true;
-                    state.curr.bs.push(this);
-                    state.curr.indent = 1;
-                    if (this.isnew)
-                        state.starting_asms = false;
-                }
-                else
-                {
-                    if (this.isnew)
-                    {
-                        let old_indent = state.curr.indent;
-                        if (this.indent == old_indent)
-                        {
-                            // subproof following a same-level subproof
-                            state.curr = state.curr.prev;
-                            state.curr.bs.push( { prev: state.curr, bs: [], indent: this.indent } );
-                            state.curr = state.curr.bs[state.curr.bs.length - 1];
-                            state.curr.bs.push(this);
-                        }
-                        else
-                        {
-                            // a new subproof
-                            state.curr.bs.push( { prev: state.curr, bs: [], indent: this.indent } );
-                            state.curr = state.curr.bs[state.curr.bs.length - 1];
-                            state.curr.bs.push(this);
-                        }
-                    }
-                    else if (this.indent == state.curr.indent)
-                    {
-                        // a standard new line within the current branch
-                        state.curr.bs.push(this);
-                    }
-                    else
-                    {
-                        // line following the finished subproof
-                        state.curr = state.curr.prev;
-                        state.curr.bs.push(this);
-                    }
-                }
-
-                this.node = state.curr;
-                this.lineno = state.next_lineno;
-                //this.prevs = [...prevs(this)];
-
-                ++state.next_lineno;
-                this.justify();
-            } catch (e) {
-                console.log('error parsing: ' + str)
-                throw e;
-            }
-        }
-
-
-
-        justify() {
-            if (this.isnew || this.is_start_asm) {
-                this.just = [new just('asm')];
-                return;
-            }
-            else
-            {
-                let fval = form => JSON.stringify(form);
-
-
-                this.just = [];
-                let mf = this.form;
-                let mval = fval(mf);
-                let reg = (op, ie, a, b, c, d, e) => this.just.push(new just(op, ie, a, b, c, d, e));
-
-                let needed_or_intro, needed_exists_elim;
-
-                let my_i = this.node.bs.indexOf(this);
-                if (my_i > 0 && this.node.bs[my_i - 1].bs)
-                {
-                    let subproof = this.node.bs[my_i - 1].bs;
-                    // lcond + lintro,  lnot + lintro
-                    if (mf.op === lcond && fval(subproof[0].form) === fval(mf.e1) && fval(subproof[subproof.length - 1].form) === fval(mf.e2))
-                        reg(lcond, lintro, subproof[0].lineno, subproof[subproof.length - 1].lineno);
-                    if (mf.op === lnot && fval(subproof[0].form) === fval(mf.e) && subproof[subproof.length - 1].form.op === lfals)
-                        reg(lnot, lintro, subproof[0].lineno, subproof[subproof.length - 1].lineno);
-
-                    // lexists + lelim
-                    if (mval === fval(subproof[subproof.length - 1].form))
-                        needed_exists_elim = { f: subproof[0].form,  b: subproof[0].lineno,  c: subproof[subproof.length - 1].lineno }
-
-
-                    if (my_i > 1 && this.node.bs[my_i - 2].bs)
-                    {
-                        let subproof2 = subproof;
-                        subproof = this.node.bs[my_i - 2].bs;
-
-                        // liff + lintro, lor + lelim [part 1]
-                        if (mf.op === liff && fval(subproof[0].form) === fval(mf.e1) && fval(subproof[subproof.length - 1].form) === fval(mf.e2) &&
-                            fval(subproof2[0].form) === fval(mf.e2) && fval(subproof2[subproof2.length - 1].form) === fval(mf.e1))
-                            reg(liff, lintro, subproof[0].lineno, subproof[subproof.length - 1].lineno,
-                                subproof2[0].lineno, subproof2[subproof2.length - 1].lineno);
-
-                        if (fval(subproof[subproof.length - 1].form) === fval(subproof2[subproof2.length - 1].form) &&
-                            fval(subproof[subproof.length - 1].form) === mval)
-                            needed_or_intro = {
-                                left: fval(subproof[0].form),
-                                right: fval(subproof2[0].form),
-                                b: subproof[0].lineno,
-                                c: subproof[subproof.length - 1].lineno,
-                                d: subproof2[0].lineno,
-                                e: subproof2[subproof2.length - 1].lineno,
-                            }
-                    }
-
-                }
-
-                for (let a of prevs(this))
-                {
-
-                    let f = a.form;
-                    let val = fval(f);
-
-                    // land + lelim,   lor + lintro,   lnot + lelim,   lfals + lelim,   're'
-                    if (mval === val)
-                        reg(lreit, undefined, a.lineno);
-                    if (f.op === land && fval(f.e1) === mval)
-                        reg(land, lelim, a.lineno);
-                    if (f.op === land && fval(f.e2) === mval)
-                        reg(land, lelim, a.lineno);
-                    if (mf.op === lor && val === fval(mf.e1))
-                        reg(lor, lintro, a.lineno);
-                    if (mf.op === lor && val === fval(mf.e2))
-                        reg(lor, lintro, a.lineno);
-                    if (f.op === lnot && f.e.op === lnot && fval(f.e.e) === mval)
-                        reg(lnot, lelim, a.lineno);
-                    if (f.op === lfals)
-                        reg(lfals, lelim, a.lineno);
-
-                    // lall + lelim
-                    if (f.op === lall && subst_inst_of(mf, f.e, { v: f.v,  c: null,  total: true, ignore_transl: false  } ) )
-                        reg(lall, lelim, a.lineno);
-
-                    // lexists + lintro
-                    if (mf.op === lexists && subst_inst_of(f, mf.e, { v: mf.v,  c: null,  total: false, ignore_transl: false  } ) )
-                        reg(lexists, lintro, a.lineno);
-
-                    let needed_all_intro;
-
-                    // lall + lintro [part 1]
-                    let all_intro_transl = { v: mf.v,  c: null,  total: true, ignore_transl: false  };
-                    if (mf.op === lall && subst_inst_of(f, mf.e, all_intro_transl ))
-                        needed_all_intro = { a: a.lineno, constant:  all_intro_transl.c };
-
-
-                    // lexists + lelim [part 2]
-                    let exists_elim_transl = { v: f.v,  c: null,  total: true, ignore_transl: false  };
-                    let exists_search = false;
-                    if (needed_exists_elim && f.op === lexists  && subst_inst_of(needed_exists_elim.f, f.e, exists_elim_transl) && !has_constant(mf, exists_elim_transl.c))
-                    {
-                        // c is automatically saved in the translation
-                        exists_search = true;
-                    }
-
-                    for (let b of prevs(this))
-                    {
-                        let f2 = b.form;
-                        let val2 = fval(f2);
-
-                        // land + lintro,  lcond + lelim,  liff + lelim,   lfals + lintro
-                        if (a.lineno <= b.lineno && mf.op == land && fval(mf.e1) === val && fval(mf.e2) === val2)
-                            reg(land, lintro, a.lineno, b.lineno);
-                        if (a.lineno <= b.lineno && mf.op == land && fval(mf.e2) === val && fval(mf.e1) === val2)
-                            reg(land, lintro, a.lineno, b.lineno);
-                        if (f.op == lcond && fval(f.e1) === val2 && fval(f.e2) === mval)
-                            reg(lcond, lelim, a.lineno, b.lineno);
-                        if (f.op == liff && fval(f.e1) === val2 && fval(f.e2) === mval)
-                            reg(liff, lelim, a.lineno, b.lineno);
-                        if (f.op == liff && fval(f.e2) === val2 && fval(f.e1) === mval)
-                            reg(liff, lelim, a.lineno, b.lineno);
-                        if (f2.op === lnot && fval(f2.e) === val && mf.op === lfals)
-                            reg(lfals, lintro, a.lineno, b.lineno)
-
-                        if (needed_all_intro && (b.isnew || b.is_start_asm) && has_constant(f2, needed_all_intro.constant) )
-                            needed_all_intro.broken = true;
-                        if (exists_search && has_constant(f2, exists_elim_transl.c))
-                            exists_search = false;
-                    }
-
-                    // lor + lelim [part 2]
-                    if (needed_or_intro && fval(f.e1) === needed_or_intro.left && fval(f.e2) === needed_or_intro.right)
-                        reg(lor, lelim, a.lineno, needed_or_intro.b, needed_or_intro.c, needed_or_intro.d, needed_or_intro.e);
-
-                    // lall + lintro [part 2]
-                    if (needed_all_intro && !needed_all_intro.broken)
-                        reg(lall, lintro, needed_all_intro.a);
-
-                    // lexists + lelim [part 3]
-                    if (exists_search)
-                        reg(lexists, lelim, a.lineno, needed_exists_elim.b, needed_exists_elim.c)
-                }
-
-
-
-
-                if (this.just.length === 0)
-                    this.just = [ {text: '(?)', latex: '(?)' } ];
-                return;
-            }
-
-
-        }
+    function ok_state()
+    {
+        status_div.style.backgroundColor = '#4CAF50';
     }
 
-
-    function render(branch, out) {
-
-        function str_formula(form, depth) {
-            if (!depth) depth = 0;
-            if (form.rel) {
-                return form.rel + form.vs.join("");
-            }
-            if (form.v)
-                return html[form.op] + form.v + " " + str_formula(form.e, depth + 1);
-            if (form.e)
-                return html[form.op] + str_formula(form.e, depth + 1);
-            if (form.e1)
-                return (depth > 0 ? '(' : '') + str_formula(form.e1, depth + 1) + ' ' + html[form.op] + ' ' + str_formula(form.e2, depth + 1) + (depth > 0 ? ')' : '');
-            if (form.op === lfals)
-                return html[form.op];
-            return form;
-        }
-
-        let init = !out;
-        if (init)
-        {
-            out = {};
-            out.val = ``;
-        }
-
-        for (let b of branch.bs) {
-            if (b.form)
-                out.val += '|'.repeat(b.indent - (b.isnew ? 1 : 0)) +
-                    (b.isnew ? 'L' : '') + ' ' + str_formula(b.form) + '\t\t ' + b.just.map(j => j.text).join(' ~ ') + ' \n';
-            else
-                render(b, out);
-        }
-        if (init)
-        {
-            out.val += ``;
-            return out.val;
-        }
+    function error_state()
+    {
+        status_div.style.backgroundColor = 'rgb(255, 213, 27)';
     }
 
-    function render_lat(branch, out) {
-
-
-        function str_formula(form, depth) {
-            if (!depth) depth = 0;
-            if (form.rel) {
-                return form.rel + form.vs.join("");
-            }
-            if (form.v)
-                return latex[form.op] + form.v + " " + str_formula(form.e, depth + 1);
-            if (form.e)
-                return latex[form.op] + str_formula(form.e, depth + 1);
-            if (form.e1)
-                return (depth > 0 ? '(' : '') + str_formula(form.e1, depth + 1) + ' ' + latex[form.op] + ' ' + str_formula(form.e2, depth + 1) + (depth > 0 ? ')' : '');
-            if (form.op === lfals)
-                return latex[form.op];
-            return form;
-        }
-
-        let init = !out;
-        if (init)
-        {
-            out = {};
-            out.val = ` % this is LaTeX output for use with fitch.sty (http://www.logicmatters.net/resources/fitch.sty)
-\\begin{equation*}
-\\begin{fitch}
-`;
-        }
-
-        for (let b of branch.bs) {
-            if (b.form)
-                out.val += '\\fa'.repeat(b.indent - (b.isnew ? 1 : 0)) +
-                    (b.isnew ? (b.is_start_asm || b.lineno == 1) ?  '\\fj' : '\\fh' : '') + ' ' + str_formula(b.form) + '\t\t & ' + b.just.map(j => j.latex).join(' (ALT) ') + '\\\\ \n';
-            else
-                render_lat(b, out);
-        }
-        if (init)
-        {
-            out.val += `
-\\end{fitch}
-\\end{equation*}
-`;
-            return out.val;
-        }
-    }
-
-    function render_html(branch) {
-
-        function str_formula(form, depth) {
-            if (!depth) depth = 0;
-            if (form.rel) {
-                return form.rel + form.vs.join("");
-            }
-            if (form.v)
-                return html[form.op] + form.v + " " + str_formula(form.e, depth + 1);
-            if (form.e)
-                return html[form.op] + str_formula(form.e, depth + 1);
-            if (form.e1)
-                return (depth > 0 ? '(' : '') + str_formula(form.e1, depth + 1) + ' ' + html[form.op] + ' ' + str_formula(form.e2, depth + 1) + (depth > 0 ? ')' : '');
-            if (form.op === lfals)
-                return html[form.op];
-            return form;
-        }
-
-        let me = document.createElement('div');
-        me.className = 'branch';
-
-        let me_just = document.createElement('div');
-
-        for (let b of branch.bs) {
-            if (b.form)
-            {
-                let a = document.createElement('span');
-                let a_just = document.createElement('span');
-
-                a.style.display = 'block';
-                a.style.paddingLeft = '3px';
-                a_just.style.display = 'block';
-
-                if (b.isnew)
-                {
-                    a.style.borderBottom = '1px solid black';
-                    a.style.marginBottom = '0.5em';
-                    a.style.marginTop = '0.5em';
-                    a.style.boxSizing = 'border-box';
-
-                    a_just.style.boxSizing = 'border-box';
-                    a_just.style.borderBottom = '1px solid rgba(0, 0, 0, 0)';
-                    a_just.style.marginBottom = '0.5em';
-                    a_just.style.marginTop = '0.5em';
-                }
-
-                a.innerText =  str_formula(b.form);
-                a_just.innerText = b.just.map(j => j.text).join(' ~ ');
-
-                me.appendChild(a);
-                me_just.appendChild(a_just);
-            }
-            else
-            {
-                [you, you_just] =render_html(b);
-                me.appendChild(you);
-                me_just.appendChild(you_just);
-            }
-        }
-        return [me, me_just];
-    }
-
-    function compile() {
-        try {
-
-            let lines = in_div.value.trim().split('\n');
-            let state = { root: { bs: [], indent: 1, prev: null }, starting_asms: true, next_lineno: 1 };
-            window.dummy_state = JSON.parse(JSON.stringify(state));
-            state.curr = state.root;
-            window.dummy_state.curr = window.dummy_state.root;
-
-            for (let lin of lines) {
-                lin = lin.trim();
-                let comp = new line(lin, state);
-            }
-            window.state = state;
-
-            function replacer(key,value)
-            {
-                if (key=="prev") return value ? ' (some) ' : ' (none) ';
-                if (key=="node") return value ? ' (some) ' : ' (none) ';
-                else return value;
-            }
-
-            out_dbg.innerText = JSON.stringify(state, replacer, "    ");
-            //out_div.innerText = render(state.root);
-            [h, h_j] = render_html(state.root);
-            out_nodes_div.appendChild(h);
-            out_just_div.appendChild(h_j);
-            out_lat_div.innerHTML = render_lat(state.root);
-        } catch (e) {
-            throw e;
-        }
+    function example_click()
+    {
+        in_div.value = window[document.querySelector('#examples').value].trim();
+        try_compile();
     }
 
     function try_compile()
     {
         try {
-            compile();
-            ok_state();
+            if (compile())
+                ok_state();
+            else
+                wip_state();
         } catch (e)
         {
             error_state();
         }
     }
 
-    function ok_state()
-    {
-        in_div.style.borderColor = 'rgb(149, 226, 138)';
+    function in_keypress(args) {
+        //window.setTimeout(() => console.log(a, b, c, d), 1000);
+        if (args.code == "Enter")
+        {
+            if (in_div.selectionEnd != in_div.selectionStart)
+                return;
+            let a = in_div.selectionStart;
+            let line_end = in_div.value.indexOf('\n', a);
+            if (line_end == -1)
+                line_end = in_div.value.length;
+            if ( in_div.value.substring(a, line_end).trim() != "" )
+                return;
+
+            let line_start;
+            for (line_start = a - 1; line_start >= 0; --line_start)
+            {
+                if (in_div.value[line_start] == '\n')
+                {
+                    break;
+                }
+            }
+            ++line_start;
+
+            let cline = in_div.value.substring(line_start, a);
+            let indent = 0;
+            for (let i = 0; i < cline.length; ++i)
+            {
+                if (cline[i] == '|') ++indent;
+                else {
+                    if (cline[i].toString().trim() == '')
+                        continue;
+                    if (cline[i] == 'L') {
+                        ++indent;
+                    }
+                    break;
+                }
+            }
+            console.log(cline, indent, line_start, line_end);
+            args.preventDefault();
+
+            in_div.value = in_div.value.substring(0, a) + "\n" + '|'.repeat(indent) + " " + "\n" + in_div.value.substring(line_end + 1);
+            in_div.selectionStart = in_div.selectionEnd = a + 2 + indent;
+        }
     }
 
-    function error_state()
-    {
-        in_div.style.borderColor = 'rgb(255, 213, 27)';
-    }
+    window.addEventListener('load', () => {
+        example_click();
+        in_div.addEventListener('keypress', in_keypress, true);
+    });
 
-    try_compile();
 </script>
+
+<script src="index.js"></script>
 </body>
 </html>
