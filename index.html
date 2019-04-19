@@ -471,7 +471,8 @@
 
     function in_keypress(args) {
         //window.setTimeout(() => console.log(a, b, c, d), 1000);
-        if (args.code == "Enter")
+        //if (args.code == "Enter")
+        if (args.inputType == "insertLineBreak")
         {
             if (in_div.selectionEnd != in_div.selectionStart)
                 return;
@@ -507,16 +508,19 @@
                 }
             }
             console.log(cline, indent, line_start, line_end);
-            args.preventDefault();
 
-            in_div.value = in_div.value.substring(0, a) + "\n" + '|'.repeat(indent) + " " + "\n" + in_div.value.substring(line_end + 1);
-            in_div.selectionStart = in_div.selectionEnd = a + 2 + indent;
+
+            window.setTimeout(() => {
+                in_div.value = in_div.value.substring(0, a) + "\n" + '|'.repeat(indent) + " " + '' + in_div.value.substring(line_end + 1);
+                console.log(in_div.value );
+                in_div.selectionStart = in_div.selectionEnd = a + 2 + indent;
+            }, 20);
         }
     }
 
     window.addEventListener('load', () => {
         example_click();
-        in_div.addEventListener('keypress', in_keypress, true);
+        in_div.addEventListener('beforeinput', in_keypress, true);
     });
 
 </script>
