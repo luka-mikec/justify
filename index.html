@@ -242,7 +242,7 @@
                     <td></td><td>Symbol</td><td colspan="6">In text</td>
                 </tr>
                 <tr>
-                    <td>Logical NOT</td><td>¬</td><td>~</td><td>~</td><td>-</td><td></td><td></td><td></td>
+                    <td>Logical NOT</td><td>¬</td><td>¬</td><td>~</td><td>-</td><td></td><td></td><td></td>
                 </tr>
                 <tr>
                     <td>Logical AND</td><td>∧</td><td>/\</td><td>&</td><td>&&</td><td>*</td><td>.</td><td></td>
@@ -274,7 +274,7 @@
             </table>
             <p>
 
-                Deduction is a list of lines, where each line is a block of <b>|</b>'s followed by a formula.
+                Deduction is a list of lines, where each line is a block of <b>|</b>'s (vertical lines) followed by a formula.
                 If A is an asummption, use L instead of the rightmost |.
                 For example: <br/>
                 <span style="padding-left: 1em; display: inline-block">
@@ -292,7 +292,8 @@
                     is universal quantification or an atomic formula, assuming there are no typos in the starting formula.
             </p>
             <p>
-                You should put brackets everywhere, except when it doesn't matter.
+                You should put brackets everywhere, except when it doesn't matter. 
+                The only predefined precedence is that all unary operators (including quantifiers) have higher priority than binary operators.
             </p>
             <p>
 
@@ -300,14 +301,16 @@
             </p>
             <ul>
                 <li>The main restriction is that you <b>do not use the same letters for variables and (pseudo)constants.</b>
-                    For example, a valid proof of ∀x P(x) from the assumption ∀x ¬¬P(x) would go as follows:
-                    ∀x ¬¬P(x); ¬¬P(c); P(c); ∀x P(x).
+                    Which letters you use for what purpose is up to you. 
+                    For example, a valid proof of ∀x Px from the assumption ∀x ¬¬Px would go as follows:
+                    ∀x ¬¬Px; ¬¬Pc; Pc; ∀x Px.
                     This restriction is not enforced (not abiding it will not cause a syntax error).
                     For example, if you have Pt ∧ Px, you can deduce ∃x (Px ∧ Px).
                     However, if you have Px ∧ Pt, since you are trying to introduce x, and the first occurence of x in
-                        the original formula Px ∧ Pt is Px, the second occurence of Px would cause an error (it differs from Pt).
-                    A good way to solve this would be to explicitly ask the user what term is being replaced in order to find a justification,
-                        but this is exactly what we're trying to avoid.
+                        the original formula Px ∧ Pt is Px, this situation is interpreted as replacing x with x.
+                    With this intepretation, the second occurence of Px causes an error (it differs from Pt).
+                    A good way to solve this would be to explicitly ask the user what term is being replaced in order to formulate a correct justification,
+                        but making the user care about justifications is exactly what we're trying to avoid.
                 </li>
                 <li>Introducing ∀, specifically ∀x F(x), can be done given a formula F such that F is exactly like F(x),
                     except that all free occurences of some letter t (which may or may not actually appear in F) within F
@@ -315,7 +318,7 @@
                     There are the usual restrictions:
                     <ul>
                         <li>t should not be mentioned in any assumption, unless it belongs to an already completed subproof</li>
-                        <li>F should not contain a quantifier over t whose scope contains x an occurence of x (e.g. EtQx)</li>
+                        <li>F should not contain a quantifier over t whose scope contains x an occurence of x (e.g. ∀tQx)</li>
                     </ul>
                 </li>
                 <li>
@@ -324,7 +327,7 @@
                     are replaced with x.
                     There are the usual restrictions:
                     <ul>
-                        <li>F should not contain a quantifier over t whose scope contains an occurence of x (e.g. EtQx)</li>
+                        <li>F should not contain a quantifier over t whose scope contains an occurence of x (e.g. ∀tQx)</li>
                     </ul>
                 </li>
                 <li>Eliminating ∀, specifically ∀x F(x), is done by inserting any formula F such that
@@ -332,7 +335,7 @@
                     are replaced with t.
                     There are the usual restrictions:
                     <ul>
-                        <li>F should not contain a quantifier over t whose scope contains x an occurence of x (e.g. EtQx)</li>
+                        <li>F should not contain a quantifier over t whose scope contains x an occurence of x (e.g. ∀tQx)</li>
                     </ul>
                 </li>
                 <li>Eliminating ∃, specifically ∃x F(x), is done by inserting a subproof beginning with a formula F such that
@@ -342,7 +345,7 @@
                     There are the usual restrictions:
                     <ul>
                         <li>t should not be mentioned in any preceding line, unless it belongs to an already completed subproof</li>
-                        <li>F should not contain a quantifier over t whose scope contains x an occurence of x (e.g. EtQx)</li>
+                        <li>F should not contain a quantifier over t whose scope contains x an occurence of x (e.g. ∀tQx)</li>
                     </ul>
                 </li>
             </ul>
@@ -430,6 +433,9 @@
     function lang_click()
     {
         window.clang = window[document.querySelector('#lang').value];
+        lintro = window.clang['intro'];        
+        lelim = window.clang['elim'];        
+
         try_compile();
     }
     //document.body.addEventListener('click', () => { document.querySelector('.modal').style.display = 'none'; } , true);
