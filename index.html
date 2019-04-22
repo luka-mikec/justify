@@ -189,7 +189,7 @@
 
         .branch {
             border-left: 1px solid black;
-            margin-left: 1em;
+            margin-left: 1.6em;
             width: fit-content;
         }
     </style>
@@ -435,7 +435,11 @@
     {
         window.clang = window[document.querySelector('#lang').value];
         lintro = window.clang['intro'];        
-        lelim = window.clang['elim'];        
+        lelim = window.clang['elim'];
+
+        latex[lreit] = '\\text{' + window.clang['reit'] + '}';
+        html[lreit] = window.clang['reit'];
+
 
         try_compile();
     }

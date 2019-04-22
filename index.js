@@ -40,7 +40,7 @@ latex[lall] = '\\forall ';
 latex[lexists] = '\\exists ';
 latex[lnot] = '\\neg ';
 latex[lfals] = '\\bot ';
-latex[lreit] = '\\text{op.}';
+latex[lreit] = '\\text{re.}';
 
 var html = {};
 html[land] = '∧';
@@ -51,16 +51,18 @@ html[lall] = '∀';
 html[lexists] = '∃';
 html[lnot] = '¬';
 html[lfals] = '⊥';
-html[lreit] = 'op.';
+html[lreit] = 're.';
 
 var hr = {
     'asm': 'pretp.',
     'elim': 'i',
-    'intro': 'u'
+    'intro': 'u',
+    'reit': 'op.',
 }, en = {
     'asm': 'assump.',
     'elim': 'e',
-    'intro': 'i'
+    'intro': 'i',
+    'reit': 're.',
 };
 
 var clang = en;
@@ -362,11 +364,11 @@ class line {
                     reg(lreit, undefined, a.lineno);
                 if (f.op === land && fval(f.e1) === mval)
                     reg(land, lelim, a.lineno);
-                if (f.op === land && fval(f.e2) === mval)
+                else if (f.op === land && fval(f.e2) === mval)
                     reg(land, lelim, a.lineno);
                 if (mf.op === lor && val === fval(mf.e1))
                     reg(lor, lintro, a.lineno);
-                if (mf.op === lor && val === fval(mf.e2))
+                else if (mf.op === lor && val === fval(mf.e2))
                     reg(lor, lintro, a.lineno);
                 if (f.op === lnot && f.e.op === lnot && fval(f.e.e) === mval)
                     reg(lnot, lelim, a.lineno);
@@ -406,7 +408,7 @@ class line {
                     // land + lintro,  lcond + lelim,  liff + lelim,   lfals + lintro
                     if (a.lineno <= b.lineno && mf.op == land && fval(mf.e1) === val && fval(mf.e2) === val2)
                         reg(land, lintro, a.lineno, b.lineno);
-                    if (a.lineno <= b.lineno && mf.op == land && fval(mf.e2) === val && fval(mf.e1) === val2)
+                    else if (a.lineno <= b.lineno && mf.op == land && fval(mf.e2) === val && fval(mf.e1) === val2)
                         reg(land, lintro, a.lineno, b.lineno);
                     if (f.op == lcond && fval(f.e1) === val2 && fval(f.e2) === mval)
                         reg(lcond, lelim, a.lineno, b.lineno);
@@ -569,7 +571,7 @@ function render_html(branch) {
             let a_nums = document.createElement('span');
 
             a.style.display = 'block';
-            a.style.paddingLeft = '3px';
+            a.style.paddingLeft = '5px';
             a_just.style.display = 'block';
             a_nums.style.display = 'block';
 
