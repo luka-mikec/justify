@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Fitch-justify</title>
+    <title>Justify</title>
     <script src="formula.js"></script>
     <script src="g.js"></script>
     <script src="nearley.js"></script>
@@ -31,14 +31,12 @@
                     automatically find proofs or insert helpful formulas;
                 </li>
                 <li>
-                    verify whether deductions are correct [but can be used for this purpose in most cases];
-                </li>
-                <li>
                     enable you to input or verify your own justifications [but it does list all candidates for justifications, if you're using the same conventions].
                 </li>
             </ul>
             <p>
                 In short, this tool enables you to write down <b>your</b> (valid) deductions quickly.
+                It can also be used as a deduction verifier, but this is not really the intended use case.
                 Everything else mentioned is mostly doable, but there are other tools for those purposes.
             </p>
         </div>
@@ -84,13 +82,15 @@
             </table>
             <p>
 
-                Deduction is a list of lines, where each line is a block of <b>|</b>'s (vertical lines) followed by a formula.
+                Deduction (Fitch-style) is a list of lines, where each line is a block of <b>|</b>'s (vertical lines) followed by a formula.
                 If A is an asummption, use L instead of the rightmost |.
                 For example: <br/>
                 <span style="padding-left: 1em; display: inline-block">
                     L ¬¬A <br/>
                     | A
                 </span>
+
+                Gentzen-style deductions are also supported, but only as an output.
             </p>
         </div>
         <div class="modalblock">
@@ -180,7 +180,7 @@
 
 <header>
     <h1>
-        Fitch-justify
+        Justify
     </h1>
 </header>
 <navigation>
@@ -207,7 +207,7 @@
     <a class="button" onclick="help_click()" >
         Help
     </a>
-    <a class="button" href="https://github.com/luka-mikec/fitch-justify">
+    <a class="button" href="https://github.com/luka-mikec/justify">
         Git repository
     </a>
 
