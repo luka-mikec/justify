@@ -4,199 +4,17 @@
 <head>
     <meta charset="UTF-8">
     <title>Fitch-justify</title>
+    <script src="formula.js"></script>
     <script src="g.js"></script>
     <script src="nearley.js"></script>
     <script src="content.js"></script>
-    <style>
-        body {
-            margin: 0;
-        }
-
-        body, button, .button {
-            font-family: 'Roboto';
-        }
-
-        header h1 {
-            padding-left: 1em;
-        }
-
-        #in {
-            padding: 0.5em;
-            border: 1px solid;
-            font-family: monospace;
-            font-size: 12pt;
-        }
-
-        #out {
-            padding: 0.5em;
-            border: 1px solid black;
-            width: 100%;
-            font-family: monospace;
-        }
-
-        #out_nums {
-
-        }
-
-        #out_nodes {
-
-        }
-
-        #out_just {
-            margin-left: 0.7em;
-        }
-
-        #out_lat {
-            border: 1px solid black;
-            width: 100%;
-            height: 10vh;
-        }
-
-        #inout {
-            display: flex;
-            width: 100%;
-            font-size: 12pt;
-        }
-
-        @media screen and (min-width: 800px) {
-            #in {
-                width: 400px;
-            }
-        }
-
-        @media screen and (max-width: 800px) {
-            #inout {
-                flex-direction: column-reverse;
-            }
-
-            #in {
-                width: 100%;
-            }
-
-        }
-
-        navigation {
-            margin: 0;
-            background: #7a6490;
-            display: flex;
-        }
-
-        navigation, section {
-            padding: 10px;
-        }
-
-        section * {
-            box-sizing: border-box;
-        }
-
-        .button {
-            font-size: 11pt;
-
-            display: inline-flex;
-            align-items: center;
-
-            box-sizing: border-box;
-
-            background: #fafafa;
-            border: 1px solid #451d84;
-            /* color: white; */
-            color: #111;
-            border-radius: 3px;
-            text-decoration: none;
-            padding: 6px;
-            cursor: default;
-            box-shadow: 0 0 1px black;
-        }
-
-        .button option {
-            background: white;
-        }
-
-        .button + .button {
-            margin-left: 0.5em;
-        }
-
-        .button:hover {
-            background: #e6e2ec;
-        }
-
-        #status {
-            display: inline-block;
-            margin-left: 0.3em;
-
-            width: 1em;
-            height: 1em;
-
-            border: 1px solid #666;
-            display: inline-block;
-            background-color: rgb(87, 158, 77);
-        }
-
-        .modal {
-            position: absolute;
-            box-sizing: border-box;
-            overflow-y: auto;
-
-            z-index: 1;
-
-            width: 70%;
-            margin-left: 15%;
-            margin-top: 10vh;
-            height: 80vh;
-
-            background: rgba(240, 234, 251, 0.95);
-            border: 1px solid #341aa7;
-            border-radius: 4px;
-            box-shadow: 0px 0px 5px black;
-
-            text-align: justify;
-
-            display: none;
-        }
-
-        .modal h2 {
-            margin: 0;
-            padding: 1em;
-            background: rgb(202, 190, 247);
-        }
-
-        .modalcontent {
-            padding: 2em;
-            padding-left: 3em;
-            margin: 0;
-        }
-
-        .modalcontent td {
-            width: 3em;
-            border: 1px solid gray;
-            text-align: center;
-        }
-
-
-        .modalcontent td:first-child {
-            text-align: left;
-        }
-
-        .modalcontent td:nth-child(2) {
-            font-weight: bold;
-        }
-
-        .modalblock {
-            /*width: 48%;*/
-        }
-
-
-
-        .branch {
-            border-left: 1px solid black;
-            margin-left: 1.6em;
-            width: fit-content;
-        }
-    </style>
+    <!-- <script src="sequent.js"></script>  -->
+    <link href="purple_interface.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
 </head>
 <body>
 
-<div class="overlay" style="position: absolute; width: 100vw; height: 97vh; margin: 0; padding: 0; display: none;" onclick="help_close()"></div>
+<div class="modal_overlay" onclick="help_close()"></div>
 <div class="modal">
     <h2>Conventions</h2>
     <div class="modalcontent">
@@ -224,14 +42,6 @@
                 Everything else mentioned is mostly doable, but there are other tools for those purposes.
             </p>
         </div>
-        <!-- <div class="modalblock">
-            <h3>Proofs vs. derivations</h3>
-            <p>
-                Deductions with at least one initial assumption are "derivations". Everything else is a "proof".
-                Differentianing these is needed here, because this tool is intended to be used  process deductions line-by-line.
-                <b>Proofs should be started with a single tilde symbol (~) in the first line.</b>
-            </p>
-        </div> -->
         <div class="modalblock">
             <h3>Syntax</h3>
             <p>
@@ -374,13 +184,17 @@
     </h1>
 </header>
 <navigation>
+    <select class="button" id="format"  oninput="style_click()" >
+        <option value="fitch" selected>Style: Fitch</option>
+        <option value="gentzen">Style: Gentzen</option>
+    </select>
+
     <div class="button" title="Green: valid syntax & justifications found for all lines. Blue: valid syntax & missing justifications. Yellow: otherwise. ">
         Status: <div id="status" style=""></div>
     </div>
 
-    <div style="    flex-grow: 1 !important;">
 
-    </div>
+    <div style="    flex-grow: 1 !important;"></div>
 
     <select class="button" id="examples" oninput="example_click()" >
         <option value="contrapos" selected>Example: Contraposition</option>
@@ -404,15 +218,20 @@
 </navigation>
 <section>
     <div style="" id="inout">
-            <textarea id="in" rows="35" style="" oninput="try_compile()">
-            </textarea>
+        <textarea id="in" rows="35" style="" oninput="in_press(event)">
+        </textarea>
+
         <div id="out">
+            <div id="out_fitch">
+                <div style="display: flex;" >
+                    <div id="out_nums" style=""></div>
+                    <div id="out_nodes" style=""></div>
+                    <div id="out_just" style=""></div>
+                </div>
+            </div>
 
+            <div id="out_gentz">
 
-            <div style="display: flex;" >
-                <div id="out_nums" style=""></div>
-                <div id="out_nodes" style=""></div>
-                <div id="out_just" style=""></div>
             </div>
         </div>
     </div>
@@ -424,24 +243,20 @@
     function help_click()
     {
         document.querySelector('.modal').style.display = 'block';
-        document.querySelector('.overlay').style.display = 'block';
+        document.querySelector('.modal_overlay').style.display = 'block';
     }
     function help_close()
     {
         document.querySelector('.modal').style.display = 'none';
-        document.querySelector('.overlay').style.display = 'none';
+        document.querySelector('.modal_overlay').style.display = 'none';
     }
-    function lang_click()
+    function lang_click(dont_compile)
     {
         window.clang = window[document.querySelector('#lang').value];
-        lintro = window.clang['intro'];        
-        lelim = window.clang['elim'];
-
-        latex[lreit] = '\\text{' + window.clang['reit'] + '}';
-        html[lreit] = window.clang['reit'];
-
-
-        try_compile();
+        refresh_lang();
+        if (!dont_compile)
+            try_compile();
+        state_to_location();
     }
     //document.body.addEventListener('click', () => { document.querySelector('.modal').style.display = 'none'; } , true);
 
@@ -461,10 +276,23 @@
         status_div.style.backgroundColor = 'rgb(255, 213, 27)';
     }
 
-    function example_click()
+    function example_click(dont_compile, dont_save)
     {
         in_div.value = window[document.querySelector('#examples').value].trim();
-        try_compile();
+        if (!dont_compile)
+            try_compile();
+        if (!dont_save)
+            state_to_location();
+    }
+
+    function style_click(dont_compile)
+    {
+        window.renderer = document.querySelector('#format').value;
+        out_fitch.style.display = window.renderer == 'fitch' ? 'flex' : 'none';
+        out_gentz.style.display = window.renderer == 'gentzen' ? 'flex' : 'none';
+        if (!dont_compile)
+            try_compile();
+        state_to_location();
     }
 
     function try_compile()
@@ -529,9 +357,67 @@
         }
     }
 
+    function in_press(args) {
+        state_to_location();
+        console.log(args);
+        try_compile();
+    }
+
+    function state_to_location() {
+        let code = [
+            [ 'lang', document.querySelector('#lang').value ],
+            [ 'examples', document.querySelector('#examples').value ],
+            [ 'format', document.querySelector('#format').value ],
+            [ 'input', encodeURIComponent(in_div.value) ],
+        ].map(arr => arr.join('=')).join('___');
+
+        let new_loc;
+
+        if (window.location.href.indexOf('#') != -1)
+        {
+            new_loc = window.location.href.substring(0,
+                window.location.href.indexOf('#'));
+        }
+        else
+            new_loc = window.location.href;
+
+        window.location.href = new_loc + '#' + code;
+    }
+
     window.addEventListener('load', () => {
-        example_click();
+        let had_proper_input = false;
+
+        if (window.location.href.indexOf('#') != -1)
+        {
+            let pairs = window.location.href.
+                substring(window.location.href.indexOf('#') + 1).
+                split('___');
+            for (let pair of pairs) {
+                let [key, val] = pair.split('=');
+                switch (key) {
+                    case 'lang':
+                        document.querySelector('#lang').value = val;
+                        break;
+                    case 'examples':
+                        document.querySelector('#examples').value = val;
+                        break;
+                    case 'format':
+                        document.querySelector('#format').value = val;
+                        break;
+                    case 'input':
+                        in_div.value = decodeURIComponent(val);
+                        had_proper_input = true;
+                        break;
+                }
+            }
+        }
+
+        lang_click(true);
+        style_click(true);
+        if (!had_proper_input )
+            example_click(true, true);
         in_div.addEventListener('beforeinput', in_keypress, true);
+        try_compile();
     });
 
 </script>

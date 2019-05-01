@@ -1,24 +1,5 @@
+var renderer = 'fitch';
 
-var land = '/\\', lor = '\\/', lcond = '->', liff = '<->', lnot = '¬', lfals = '#', lreit='re',
-    lintro = 'i', lelim = 'e', lall = 'A', lexists = 'E';
-
-var synonyms = {
-    "/\\": ["/\\", "&" , "&&" , "*" , "."],
-    "\\/": ["\\/",  "|" , "||" , "+" , ","],
-    "->": ["->", "=>", ">"],
-    "<->": ["<->", "<=>" , "=" , "<>"],
-    "¬": ["¬" , "~" , "-"],
-    "A": ["A", "@"],
-    "E": ["E"]
-};
-
-function synonym_base(symb) {
-    for (let k of Object.keys(synonyms))
-    {
-        if (synonyms[k].includes(symb) )
-            return k ;
-    }
-}
 
 
 var status_div = document.querySelector("#status"),
@@ -27,59 +8,27 @@ var status_div = document.querySelector("#status"),
     out_nums_div = document.querySelector("#out_nums"),
     out_nodes_div = document.querySelector("#out_nodes"),
     out_just_div = document.querySelector("#out_just"),
+    out_fitch = document.querySelector("#out_fitch"),
+    out_gentz = document.querySelector("#out_gentz"),
     out_lat_div = document.querySelector("#out_lat"),
     out_dbg_div = document.querySelector("#out_dbg");
-
-
-var latex = {};
-latex[land] = '\\wedge ';
-latex[lor] = '\\vee ';
-latex[lcond] = '\\to ';
-latex[liff] = '\\leftrightarrow ';
-latex[lall] = '\\forall ';
-latex[lexists] = '\\exists ';
-latex[lnot] = '\\neg ';
-latex[lfals] = '\\bot ';
-latex[lreit] = '\\text{re.}';
-
-var html = {};
-html[land] = '∧';
-html[lor] = '∨';
-html[lcond] = '→';
-html[liff] = '↔';
-html[lall] = '∀';
-html[lexists] = '∃';
-html[lnot] = '¬';
-html[lfals] = '⊥';
-html[lreit] = 're.';
-
-var hr = {
-    'asm': 'pretp.',
-    'elim': 'i',
-    'intro': 'u',
-    'reit': 'op.',
-}, en = {
-    'asm': 'assump.',
-    'elim': 'e',
-    'intro': 'i',
-    'reit': 're.',
-};
-
-var clang = en;
-
 
 
 class just {
     constructor(op, ie, a, b, c, d, e) {
         Object.assign(this, {op, ie, a, b, c, d, e});
 
-        let x = op + (ie ? ie : '');
-        let x_html = html[op] + (ie ? ie : '');
-        let x_latex = '$' + latex[op] + '$' + (ie ? ie : '');
+        let x = op + (ie ? ie: '');
+        let x_html = html[op] + (ie ? clang[ie] : '');
+        let x_latex = '$' + latex[op] + '$' + (ie ? clang[ie] : '');
 
-        if (x == 'asm') {
-            this.text = clang['asm'];
-            this.latex = clang['asm'];
+        this.op_ie = x;
+        this.op_ie_html = x_html;
+        this.op_ie_latex = x_latex;
+
+        if (x == lasm) {
+            this.text = x_html;
+            this.latex = x_latex;
         }
         if ([land + lelim,   lor + lintro,   lnot + lelim,   lfals + lelim,   lreit,   lall + lelim,   lexists + lintro,  lall + lintro].includes(x)) {
             this.text = x_html + ", " + a;
@@ -113,7 +62,7 @@ class just {
     }
 }
 
-function* prevs(start) {
+function* lines_before(start) {
     function *traverser(branch, start)
     {
         for (let a of branch.bs)
@@ -130,95 +79,6 @@ function* prevs(start) {
 
     yield * traverser(start.node, start);
 }
-
-function subst_inst_of(inst, schema, transl, abusive /* if t/x and have subformula QxP(t), reject */)
-{
-    if (inst.op !== schema.op)
-        return false;
-
-    if (inst.rel)
-    {
-        if (inst.rel != schema.rel || inst.vs.length != schema.vs.length)
-            return false;
-        for (let [i, obj] of inst.vs.entries())
-        {
-            if (transl.ignore_transl)
-            {
-                if (obj != schema.vs[i])
-                    return false;
-            }
-            else
-            {
-                if (schema.vs[i] == transl.v)
-                {
-                    if (transl.c == null)
-                    {
-                        transl.c = obj;
-                    }
-                    else if (transl.c != obj && (transl.total  ||  obj != schema.vs[i]))
-                    {
-                        return false;
-                    }
-                }
-                else if (schema.vs[i] != obj)
-                    return false;
-            }
-        }
-        return true;
-    }
-
-    switch (inst.op) {
-        case lfals:
-            return true;
-        case lnot:
-            return subst_inst_of(inst.e, schema.e, transl, abusive);
-        case land: case lor: case lcond: case liff:
-            return subst_inst_of(inst.e1, schema.e1, transl, abusive) && subst_inst_of(inst.e2, schema.e2, transl, abusive);
-        case lall: case lexists:
-            if (inst.v !== schema.v)
-                return false;
-
-            if (transl.ignore_transl || inst.v === transl.v) {
-                let old_ignore_transl = transl.ignore_transl;
-                transl.ignore_transl = true;
-                let istrue = subst_inst_of(inst.e, schema.e, transl, abusive);
-
-                if (abusive && has_constant(schema.e, transl.c))
-                    return false;
-
-                transl.ignore_transl = old_ignore_transl;
-                return istrue;
-            }
-
-            return subst_inst_of(inst.e, schema.e, transl, abusive);
-    }
-}
-
-
-function has_constant(form, c, not_consts)
-{
-    if (!not_consts)
-        not_consts = [];
-
-    if (form.rel)
-    {
-        return form.vs.includes(c);
-    }
-
-    switch (form.op) {
-        case lfals:
-            return false;
-        case lall: lexists:
-            not_consts = not_consts.slice();
-            not_consts.push(form.v);
-            return has_constant(form.e, c, not_consts);
-        case lnot:
-            return has_constant(form.e, c, not_consts);
-        case land: case lor: case lcond: case liff:
-            return has_constant(form.e1, c, not_consts) || has_constant(form.e2, c, not_consts);
-    }
-}
-
 
 
 
@@ -284,7 +144,7 @@ class line {
 
             this.node = state.curr;
             this.lineno = state.next_lineno;
-            //this.prevs = [...prevs(this)];
+            //this.lines_before = [...lines_before(this)];
 
             ++state.next_lineno;
             this.justify();
@@ -295,10 +155,9 @@ class line {
     }
 
 
-
     justify() {
         if (this.isnew || this.is_start_asm) {
-            this.just = [new just('asm')];
+            this.just = [new just(lasm)];
             return;
         }
         else
@@ -353,7 +212,7 @@ class line {
 
             }
 
-            for (let a of prevs(this))
+            for (let a of lines_before(this))
             {
 
                 let f = a.form;
@@ -400,7 +259,7 @@ class line {
                     exists_search = true;
                 }
 
-                for (let b of prevs(this))
+                for (let b of lines_before(this))
                 {
                     let f2 = b.form;
                     let val2 = fval(f2);
@@ -442,7 +301,7 @@ class line {
 
 
             if (this.just.length === 0) {
-                this.just = [{text: '(?)', latex: '(?)'}];
+                this.just = [{text: '(?)', latex: '(?)', op_ie_html: '(?)'}];
                 this.unjust = true;
             }
             return;
@@ -452,24 +311,28 @@ class line {
     }
 }
 
+function get_line(root, line)
+{
+    if (root.bs)
+    {
+        for (let obj of root.bs)
+        {
+            let r = get_line(obj, line);
+            if (r)
+                return r;
+        }
+    }
+    else
+        if (root.lineno === line)
+            return root;
+
+    return undefined;
+}
+
 
 function render(branch, out) {
-
-    function str_formula(form, depth) {
-        if (!depth) depth = 0;
-        if (form.rel) {
-            return form.rel + form.vs.join("");
-        }
-        if (form.v)
-            return html[form.op] + form.v + " " + str_formula(form.e, depth + 1);
-        if (form.e)
-            return html[form.op] + str_formula(form.e, depth + 1);
-        if (form.e1)
-            return (depth > 0 ? '(' : '') + str_formula(form.e1, depth + 1) + ' ' + html[form.op] + ' ' + str_formula(form.e2, depth + 1) + (depth > 0 ? ')' : '');
-        if (form.op === lfals)
-            return html[form.op];
-        return form;
-    }
+    // basic text renderer
+    let str_formula = html_str_formula;
 
     let init = !out;
     if (init)
@@ -492,24 +355,10 @@ function render(branch, out) {
     }
 }
 
-function render_lat(branch, out) {
 
+function render_fitch_lat(branch, out) {
+    let str_formula = latex_str_formula;
 
-    function str_formula(form, depth) {
-        if (!depth) depth = 0;
-        if (form.rel) {
-            return form.rel + form.vs.join("");
-        }
-        if (form.v)
-            return latex[form.op] + form.v + " " + str_formula(form.e, depth + 1);
-        if (form.e)
-            return latex[form.op] + str_formula(form.e, depth + 1);
-        if (form.e1)
-            return (depth > 0 ? '(' : '') + str_formula(form.e1, depth + 1) + ' ' + latex[form.op] + ' ' + str_formula(form.e2, depth + 1) + (depth > 0 ? ')' : '');
-        if (form.op === lfals)
-            return latex[form.op];
-        return form;
-    }
 
     let init = !out;
     if (init)
@@ -526,7 +375,7 @@ function render_lat(branch, out) {
             out.val += '\\fa'.repeat(b.indent - (b.isnew ? 1 : 0)) +
                 (b.isnew ? (b.is_start_asm || b.lineno == 1) ?  '\\fj' : '\\fh' : '') + ' ' + str_formula(b.form) + '\t\t & ' + b.just.map(j => j.latex).join(' (ALT) ') + '\\\\ \n';
         else
-            render_lat(b, out);
+            render_fitch_lat(b, out);
     }
     if (init)
     {
@@ -538,26 +387,132 @@ function render_lat(branch, out) {
     }
 }
 
-function render_html(branch) {
+// helper for both html gentzen, and latex gentzen
+function gen_gentzen_tree(state, str_formula, str_just, line)
+{
+    if (line == undefined)
+        line = state.next_lineno - 1;
 
-    function str_formula(form, depth) {
-        if (!depth) depth = 0;
-        if (form.rel) {
-            return form.rel + form.vs.join("");
+    let me = {type: 'gentz_node'};
+
+    if (line < 0)
+        return me;
+
+    let x = '';
+    let l;
+
+    do {
+        l = get_line(state.root, line);
+
+        me.as_co = {type: 'gentz_as_co'};
+
+        x = l.just[0].op_ie;
+
+        if (x == lreit)
+        {
+            line = l.just[0].a;
         }
-        if (form.v)
-            return html[form.op] + form.v + " " + str_formula(form.e, depth + 1);
-        if (form.e)
-            return html[form.op] + str_formula(form.e, depth + 1);
-        if (form.e1)
-            return (depth > 0 ? '(' : '') + str_formula(form.e1, depth + 1) + ' ' + html[form.op] + ' ' + str_formula(form.e2, depth + 1) + (depth > 0 ? ')' : '');
-        if (form.op === lfals)
-            return html[form.op];
-        return form;
+
+    } while (x == lreit);
+
+
+
+    if (x == lasm) {
+        me.as_co.st_as = {type: 'gentz_init_as', text: str_formula(l.form)};
+        return me;
     }
 
+    me.just = {type: 'gentz_just', text: str_just(l.just[0])};
+    me.as_co.as = {type: 'gentz_as', elems: [] };
+    me.as_co.co = {type: 'gentz_co', text: str_formula(l.form) };
+
+    if ([land + lelim,   lor + lintro,   lnot + lelim,   lfals + lelim,   lreit,   lall + lelim,   lexists + lintro,  lall + lintro].includes(x)) {
+        me.as_co.as.elems.push(gen_gentzen_tree(state, str_formula, str_just, l.just[0].a));
+    }
+    if ([land + lintro,  lcond + lelim,  liff + lelim,   lfals + lintro  ].includes(x))
+    {
+        me.as_co.as.elems.push(gen_gentzen_tree(state, str_formula, str_just, l.just[0].a));
+        me.as_co.as.elems.push(gen_gentzen_tree(state, str_formula, str_just, l.just[0].b));
+    }
+    if ([lcond + lintro,  lnot + lintro].includes(x))
+    {
+        me.as_co.as.elems.push(gen_gentzen_tree(state, str_formula, str_just, l.just[0].b));
+    }
+    if (x == lor + lelim)
+    {
+        me.as_co.as.elems.push(gen_gentzen_tree(state, str_formula, str_just, l.just[0].a));
+        me.as_co.as.elems.push(gen_gentzen_tree(state, str_formula, str_just, l.just[0].c));
+        me.as_co.as.elems.push(gen_gentzen_tree(state, str_formula, str_just, l.just[0].e));
+    }
+    if (x == liff + lintro)
+    {
+        me.as_co.as.elems.push(gen_gentzen_tree(state, str_formula, str_just, l.just[0].b));
+        me.as_co.as.elems.push(gen_gentzen_tree(state, str_formula, str_just, l.just[0].d));
+    }
+    if (x == lexists + lelim)
+    {
+        me.as_co.as.elems.push(gen_gentzen_tree(state, str_formula, str_just, l.just[0].a));
+        me.as_co.as.elems.push(gen_gentzen_tree(state, str_formula, str_just, l.just[0].c));
+    }
+
+    return me;
+}
+
+function render_gentzen_lat(state, tree, out) {
+    let str_formula = latex_str_formula;
+
+    let init = !out;
+    if (init)
+    {
+        out = {};
+        out.val = ` % this is LaTeX output for use with bussproofs.sty (https://www.math.ucsd.edu/~sbuss/ResearchWeb/bussproofs/bussproofs.sty)
+\\begin{prooftree}
+`;
+    }
+
+    if (tree == undefined)
+        tree = gen_gentzen_tree(state, str_formula, x => x.op_ie_latex );
+
+    if (tree.as_co.st_as)
+    {
+        out.val += `\\AxiomC{\$ ${ tree.as_co.st_as.text } \$}\n`;
+        return;
+    }
+
+    for (let asmp of tree.as_co.as.elems)
+        render_gentzen_lat(state, asmp, out);
+
+    out.val += `\\RightLabel{${ tree.just.text }}\n`;
+
+    switch (tree.as_co.as.elems.length) {
+        case 1:
+            out.val += `\\UnaryInfC{\$ ${ tree.as_co.co.text } \$}\n`;
+            break;
+        case 2:
+            out.val += `\\BinaryInfC{\$ ${ tree.as_co.co.text } \$}\n`;
+            break;
+        case 3:
+            out.val += `\\TrinaryInfC{\$ ${ tree.as_co.co.text } \$}\n`;
+            break;
+    }
+
+    if (init)
+    {
+        out.val += `\\end{prooftree}`;
+        return out.val;
+    }
+}
+
+
+
+
+
+
+function render_html(branch) {
+    let str_formula = html_str_formula;
+
     let me = document.createElement('div');
-    me.className = 'branch';
+    me.className = 'fitch_branch';
 
     let me_just = document.createElement('div');
 
@@ -566,31 +521,18 @@ function render_html(branch) {
     for (let b of branch.bs) {
         if (b.form)
         {
-            let a = document.createElement('span');
-            let a_just = document.createElement('span');
-            let a_nums = document.createElement('span');
-
-            a.style.display = 'block';
-            a.style.paddingLeft = '5px';
-            a_just.style.display = 'block';
-            a_nums.style.display = 'block';
+            let a = document.createElement('div');
+            a.classList.add('fitch_formula');
+            let a_just = document.createElement('div');
+            a_just.classList.add('fitch_just');
+            let a_nums = document.createElement('div');
+            a_nums.classList.add('fitch_num');
 
             if (b.isnew)
             {
-                a.style.borderBottom = '1px solid black';
-                a.style.marginBottom = '0.5em';
-                a.style.marginTop = '0.5em';
-                a.style.boxSizing = 'border-box';
-
-                a_just.style.boxSizing = 'border-box';
-                a_just.style.borderBottom = '1px solid rgba(1, 1, 1, 0)';
-                a_just.style.marginBottom = '0.5em';
-                a_just.style.marginTop = '0.5em';
-
-                a_nums.style.boxSizing = 'border-box';
-                a_nums.style.borderBottom = '1px solid rgba(1, 1, 1, 0)';
-                a_nums.style.marginBottom = '0.5em';
-                a_nums.style.marginTop = '0.5em';
+                a.classList.add('fitch_assumption');
+                a_just.classList.add('fitch_assumption');
+                a_nums.classList.add('fitch_assumption');
             }
 
             a_nums.innerText = b.lineno;
@@ -611,6 +553,72 @@ function render_html(branch) {
     }
     return [me_nums, me, me_just];
 }
+
+
+
+
+function render_html_gentz(state, tree) {
+    let str_formula = html_str_formula;
+
+
+    if (tree == undefined)
+        tree = gen_gentzen_tree(state, str_formula, x => x.op_ie_html);
+
+    let me = document.createElement('div');
+    me.className = 'gentz_node';
+
+    if (!tree.as_co)
+        return me;
+
+    let me_as_co = document.createElement('div');
+    me_as_co.className = 'gentz_as_co';
+    me.appendChild(me_as_co);
+
+    if (tree.as_co.st_as) {
+        let me_st_as =  document.createElement('div');
+        me_st_as.className = 'gentz_init_as';
+        me_st_as.innerText = tree.as_co.st_as.text;
+        me_as_co.appendChild(me_st_as);
+
+        return me;
+    }
+
+    let me_just = document.createElement('div');
+    me_just.className = 'gentz_just';
+    me_just.innerText = tree.just.text;
+    me.appendChild(me_just);
+
+    let me_as = document.createElement('div');
+    me_as.className = 'gentz_as';
+    me_as_co.appendChild(me_as);
+
+    let me_co = document.createElement('div');
+    me_co.className = 'gentz_co';
+    me_co.innerText = tree.as_co.co.text;
+    me_as_co.appendChild(me_co);
+
+    if (tree.as_co.as.elems.length > 0) {
+        me_as.appendChild(render_html_gentz(state, tree.as_co.as.elems[0]));
+    }
+    if (tree.as_co.as.elems.length > 1) {
+        let space = document.createElement('div');
+        space.className = 'gentz_as_space';
+        me_as.appendChild(space);
+        me_as.appendChild(render_html_gentz(state, tree.as_co.as.elems[1]));
+    }
+    if (tree.as_co.as.elems.length > 2) {
+        let space = document.createElement('div');
+        space.className = 'gentz_as_space';
+        me_as.appendChild(space);
+        me_as.appendChild(render_html_gentz(state, tree.as_co.as.elems[2]));
+    }
+
+    return me;
+}
+
+
+
+
 
 function compile() {
     let have_unjust = false;
@@ -653,7 +661,13 @@ function compile() {
             out_just_div.firstChild.remove()
         out_just_div.appendChild(h_j);
 
-        out_lat_div.innerHTML = render_lat(state.root);
+
+        while (out_gentz.firstChild)
+            out_gentz.firstChild.remove()
+        out_gentz.appendChild(render_html_gentz(state));
+
+        out_lat_div.innerHTML = window.renderer == 'fitch' ? render_fitch_lat(state.root)
+            : render_gentzen_lat(state);
     } catch (e) {
         throw e;
     }
