@@ -1,62 +1,82 @@
 /*
-
     This file contains generic functions related to formula processing (parsing, substitution, printing etc.)
-
     There are also unrelated bits, such as translations, which have to do with global state.
-
     Languages are global dicts, current language is saved in the "clang", and refresh_dict should be called to apply changes.
-
  */
-
 
 var land = '/\\', lor = '\\/', lcond = '->', liff = '<->', lnot = '~', lfals = '#', lreit='re',
     lintro = 'i', lelim = 'e', lall = 'A', lexists = 'E', lasm = 'assump.', ltrue = 'T';
 
-var synonyms = {
-    "#": ["#", "_|_"],
-    "T": ["T"],
-    "/\\": ["/\\", "&" , "&&" , "*" , "."],
-    "\\/": ["\\/",  "|" , "||" , "+" , ","],
-    "->": ["->", "=>", ">"],
-    "<->": ["<->", "<=>" , "=" , "<>"],
-    "~": ["¬" , "~" , "-"],
-    "A": ["A", "@"],
-    "E": ["E"],
-
+var operator_info = {
+    [lfals]: {
+        synonyms: ["#", "_|_"],
+        latex: "\\bot",
+        html: "⊥",
+    },
+    [ltrue]: {
+        synonyms: ["T"],
+        latex: "\\top",
+        html: "⊤",
+    },
+    [land]: {
+        synonyms: ["/\\", "&" , "&&" , "*" , "."],
+        latex: "\\wedge",
+        html: "∧",
+    },
+    [lor]: {
+        synonyms: ["\\/",  "|" , "||" , "+" , ","],
+        latex: "\\vee",
+        html: "∨",
+    },
+    [lcond]: {
+        synonyms: ["->", "=>", ">"],
+        latex: "\\to",
+        html: "→",
+    },
+    [liff]: {
+        synonyms: ["<->", "<=>" , "=" , "<>"],
+        latex: "\\leftrightarrow",
+        html: "↔",
+    },
+    [lnot]: {
+        synonyms: ["¬" , "~" , "-"],
+        latex: "\\neg",
+        html: "¬",
+    },
+    [lall]: {
+        synonyms: ["A", "@"],
+        latex: "\\forall",
+        html: "∀",
+    },
+    [lexists]: {
+        synonyms: ["E"],
+        latex: "\\exists",
+        html: "∃",
+    },
 };
 
 function synonym_base(symb) {
-    for (let k of Object.keys(synonyms))
-    {
-        if (synonyms[k].includes(symb) )
+    for (const [k, info] of Object.entries(operator_info))
+        if (info.synonyms.includes(symb) )
             return k ;
-    }
     throw "uknown symbol " + symb;
 }
 
-var latex = {};
+var latex = Object.fromEntries(
+    Object.entries(operator_info).map(
+        ([key, info]) => [key, info.latex]
+    )
+);
+
 latex[lasm] =  '\\text{assump.}';
-latex[land] = '\\wedge ';
-latex[lor] = '\\vee ';
-latex[lcond] = '\\to ';
-latex[liff] = '\\leftrightarrow ';
-latex[lall] = '\\forall ';
-latex[lexists] = '\\exists ';
-latex[lnot] = '\\neg ';
-latex[lfals] = '\\bot ';
-latex[ltrue] = '\\top ';
 latex[lreit] = '\\text{re.}';
 
-var html = {};
-html[land] = '∧';
-html[lor] = '∨';
-html[lcond] = '→';
-html[liff] = '↔';
-html[lall] = '∀';
-html[lexists] = '∃';
-html[lnot] = '¬';
-html[lfals] = '⊥';
-html[ltrue] = '⊤';
+var html = Object.fromEntries(
+    Object.entries(operator_info).map(
+        ([key, info]) => [key, info.html]
+    )
+);
+
 html[lreit] = 're.';
 html[lasm] = 'assump.';
 
@@ -179,7 +199,7 @@ function subst(form, v, c)
     }
 }
 
-function frm_terms(form, bound)
+function formula_terms(form, bound)
 {
     if (!bound)
         bound = [];
@@ -193,11 +213,11 @@ function frm_terms(form, bound)
         case lfals: case ltrue:
             return [];
         case lall: case lexists:
-            return frm_terms(form.e, bound.concat(form.v));
+            return formula_terms(form.e, bound.concat(form.v));
         case lnot:
-            return frm_terms(form.e, bound);
+            return formula_terms(form.e, bound);
         case land: case lor: case lcond: case liff:
-            return frm_terms(form.e1, bound).concat(frm_terms(form.e2, bound));
+            return formula_terms(form.e1, bound).concat(formula_terms(form.e2, bound));
     }
 }
 

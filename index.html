@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,7 +7,6 @@
     <script src="g.js"></script>
     <script src="nearley.js"></script>
     <script src="content.js"></script>
-    <!-- <script src="sequent.js"></script>  -->
     <link href="purple_interface.css" rel="stylesheet">
     <link href="style.css" rel="stylesheet">
 </head>
@@ -94,7 +92,7 @@
             </p>
         </div>
         <div class="modalblock">
-            <h3>Conventions</h3>
+            <h3>Help and conventions</h3>
             <p>
                 Note that relational symbols (including propositions) are limited in length to one character.
                 Letters 'A' and 'E' can be used for propositions (0-ary relations), but it might be confusing.
@@ -183,7 +181,7 @@
         Justify
     </h1>
 </header>
-<navigation>
+<div class="navigation">
     <select class="button" id="format"  oninput="style_click()" >
         <option value="fitch" selected>Style: Fitch</option>
         <option value="gentzen">Style: Gentzen</option>
@@ -207,7 +205,7 @@
     <a class="button" onclick="help_click()" >
         Help
     </a>
-    <a class="button" href="https://github.com/luka-mikec/justify">
+    <a class="button" target="_blank" href="https://github.com/luka-mikec/justify">
         Git repository
     </a>
 
@@ -215,7 +213,7 @@
         <option value="en" selected>English</option>
         <option value="hr">Croatian</option>
     </select>
-</navigation>
+</div>
 <section>
     <div style="" id="inout">
         <textarea id="in" rows="35" style="" oninput="in_press(event)">
@@ -229,10 +227,7 @@
                     <div id="out_just" style=""></div>
                 </div>
             </div>
-
-            <div id="out_gentz">
-
-            </div>
+            <div id="out_gentz"></div>
         </div>
     </div>
     <textarea id="out_lat" style="">b</textarea>
@@ -346,12 +341,9 @@
                     break;
                 }
             }
-            console.log(cline, indent, line_start, line_end);
-
 
             window.setTimeout(() => {
                 in_div.value = in_div.value.substring(0, a) + "\n" + '|'.repeat(indent) + " " + '' + in_div.value.substring(line_end + 1);
-                console.log(in_div.value );
                 in_div.selectionStart = in_div.selectionEnd = a + 2 + indent;
             }, 20);
         }
@@ -359,7 +351,6 @@
 
     function in_press(args) {
         state_to_location();
-        console.log(args);
         try_compile();
     }
 

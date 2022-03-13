@@ -100,9 +100,13 @@
 }
 
 
+#out_nums * {
+    line-height: 1.5;
+}
 
 .fitch_formula {
     padding-left: 5px;
+    line-height: 1.5;
 }
 
 .fitch_assumption {
@@ -111,7 +115,9 @@
     box-sizing: border-box;
 }
 
-.fitch_just { }
+.fitch_just {
+    line-height: 1.5;
+}
 
 .fitch_num { }
 
