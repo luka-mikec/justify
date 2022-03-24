@@ -273,7 +273,7 @@ function latex_str_formula(form, depth) {
     if (form.v)
         return latex[form.op] + form.v + " " + str_formula(form.e, depth + 1);
     if (form.e)
-        return latex[form.op] + str_formula(form.e, depth + 1);
+        return latex[form.op] + " " + str_formula(form.e, depth + 1);
     if (form.e1)
         return (depth > 0 ? '(' : '') + str_formula(form.e1, depth + 1) + ' ' + latex[form.op] + ' ' + str_formula(form.e2, depth + 1) + (depth > 0 ? ')' : '');
     if (form.op === lfals || form.op === ltrue)
