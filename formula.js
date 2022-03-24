@@ -254,7 +254,7 @@ function html_str_formula(form, depth) {
         return form.rel + form.vs.join("");
     }
     if (form.v)
-        return html[form.op] + form.v + " " + str_formula(form.e, depth + 1);
+        return html[form.op] + " " + form.v + " " + str_formula(form.e, depth + 1);
     if (form.e)
         return html[form.op] + str_formula(form.e, depth + 1);
     if (form.e1)
